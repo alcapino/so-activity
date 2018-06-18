@@ -8,7 +8,7 @@ class User(models.Model):
     password = models.CharField(max_length=100,)
     firstname = models.CharField(max_length=100, blank=True, default='')
     lastname = models.CharField(max_length=100, blank=True, default='')
-    activated = models.BooleanField(default=False)
+    active = models.BooleanField(default=False)
 
     class Meta:
         ordering = ('created',)

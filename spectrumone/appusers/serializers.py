@@ -5,7 +5,7 @@ from appusers.models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'password', 'firstname', 'lastname', 'activated')
+        fields = ('id', 'email', 'password', 'firstname', 'lastname', 'active')
 
     def create(self, validated_data):
         return User.objects.create(**validated_data)
@@ -15,6 +15,6 @@ class UserSerializer(serializers.ModelSerializer):
         instance.password = validated_data.get('password', instance.password)
         instance.firstname = validated_data.get('firstname', instance.firstname)
         instance.lastname = validated_data.get('lastname', instance.lastname)
-        instance.activated = validated_data.get('activated', instance.activated)
+        instance.active = validated_data.get('active', instance.active)
         instance.save()
         return instance
