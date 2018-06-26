@@ -1,0 +1,11 @@
+AUTHSERVER = "http://localhost:8000/o/token/"
+APPUSER_APP = {
+	'USERNAME': 'admin',
+	'PASSWORD': 'adminadmin',
+	'GRANTTYPE': 'password',
+}
+
+APPUSER_CLIENT = {
+	'ID' : 'vkrrAm58gZlsA0UIK5mPLu9O735b4TUDFNvc2N4z',
+	'SECRET' : 'NW9IKKia8FCPKLIHuNnB9h6sKINiVYYXEXhSnB00sfdYDq0n9yxpHGW02X1QLVSv6aIZ021dA1yYpokhZ2KJBfPL9CewcWEnYE1QhfGI1ojO81l5LzVVksX9wssE8m2U'
+}

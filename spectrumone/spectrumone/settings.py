@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'oauth2_provider',
     'appusers.apps.AppusersConfig',
 ]
 
@@ -120,3 +121,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+## 
+try:
+   from spectrumone.local_settings import *
+except ImportError:
+    raise Exception("A local_settings.py file is required to run this project")
