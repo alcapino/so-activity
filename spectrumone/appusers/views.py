@@ -7,6 +7,8 @@ from appusers.serializers import UserSerializer
 
 from rest_framework.decorators import api_view
 from django.core.mail import send_mail
+from django.conf import settings
+import requests
 
 # Create your views here.
 
@@ -30,7 +32,7 @@ def user_registration(request):
             send_mail(
                 #TODO: email not working, URL not restful
                 "User activation",
-                ("Use this link to activate: http://127.0.0.1:8000/activate/%s/%s", str(serializer.data['id']), str(serializer.data['activation_token'])),
+                "Use this link to activate: http://127.0.0.1:8000/activate/%s/%s" % str(serializer.data['id']), str(serializer.data['activation_token']),
                 "admin@so.com",
                 [str(serializer.data['email'])],
                 fail_silently=False,
@@ -39,8 +41,8 @@ def user_registration(request):
         return JsonResponse(serializer.errors, status=400)
 
 #@csrf_exempt
-@api_view(['GET','PUT','DELETE'])
-def user_detail(request, pk):
+@api_view(['GET','PATCH','PUT','DELETE'])
+def user_detail(request, pk, t=None):
     try:
         user = User.objects.get(pk=pk)
     except User.DoesNotExist:
@@ -66,6 +68,41 @@ def user_detail(request, pk):
             return JsonResponse(serializer.data)
         return JsonResponse(serializer.errors, status=400)
 
+    elif request.method == 'PATCH':
+        if not user.activation_token == t:
+            return HttpResponse("Invalid token", status=403)
+        data = {}
+        data["email"] = user.email
+        data["password"] = user.password
+        data["active"] = 1
+
+        serializer = UserSerializer(user, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data)
+        return JsonResponse(serializer.errors, status=400)
+
     elif request.method == 'DELETE':
         user.delete()
         return HttpResponse("User removed", status=204)
+
+@api_view(['POST'])
+def access_token(request, pk):
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return HttpResponse("User not found", status=404)
+
+    if request.method == 'POST':
+        required_params = ['email', 'password']
+        params = JSONParser().parse(request)
+        param_complete =  all(item in params for item in required_params)
+        if not param_complete:
+            return HttpResponse("Incomplete data", status=400)
+
+        app = settings.APPUSER_APP
+        client = settings.APPUSER_CLIENT
+        auth_url = settings.AUTHSERVER
+        payload = {'username': app['USERNAME'], 'password': app['PASSWORD'], 'grant_type': 'password'}
+        r = requests.post(auth_url, auth=(client['ID'], client['SECRET']), data = payload)
+        return JsonResponse(r.json(), safe= False)
