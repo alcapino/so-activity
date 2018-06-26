@@ -5,10 +5,12 @@ from rest_framework.parsers import JSONParser
 from appusers.models import User
 from appusers.serializers import UserSerializer
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from django.core.mail import send_mail
 from django.conf import settings
 import requests
+from rest_framework.permissions import IsAuthenticated
+from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope
 
 # Create your views here.
 
@@ -21,7 +23,6 @@ def user_list(request):
         serializer = UserSerializer(users, many=True)
         return JsonResponse(serializer.data, safe=False)
 
-@csrf_exempt
 @api_view(['POST'])
 def user_registration(request):
     if request.method == 'POST':
@@ -30,18 +31,18 @@ def user_registration(request):
         if serializer.is_valid():
             serializer.save()
             send_mail(
-                #TODO: email not working, URL not restful
+                #TODO: email not working
                 "User activation",
-                "Use this link to activate: http://127.0.0.1:8000/activate/%s/%s" % str(serializer.data['id']), str(serializer.data['activation_token']),
+                "Use this link to activate: http://127.0.0.1:8000/activate/%s/%s" % (str(serializer.data['id']), str(serializer.data['activation_token'])),
                 "admin@so.com",
                 [str(serializer.data['email'])],
-                fail_silently=False,
+                fail_silently=True,
             )
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
 
 #@csrf_exempt
-@api_view(['GET','PATCH','PUT','DELETE'])
+@api_view(['GET','PATCH','DELETE'])
 def user_detail(request, pk, t=None):
     try:
         user = User.objects.get(pk=pk)
@@ -51,22 +52,6 @@ def user_detail(request, pk, t=None):
     if request.method == 'GET':
         serializer = UserSerializer(user)
         return JsonResponse(serializer.data)
-
-    elif request.method == 'PUT':
-        # TODO: require token and current password
-        data = {}
-        data["email"] = user.email
-        data["password"] = user.password
-
-        params = JSONParser().parse(request)
-        if "password" in params:
-            data["password"] = params["password"]
-
-        serializer = UserSerializer(user, data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)
 
     elif request.method == 'PATCH':
         if not user.activation_token == t:
@@ -106,3 +91,35 @@ def access_token(request, pk):
         payload = {'username': app['USERNAME'], 'password': app['PASSWORD'], 'grant_type': 'password'}
         r = requests.post(auth_url, auth=(client['ID'], client['SECRET']), data = payload)
         return JsonResponse(r.json(), safe= False)
+
+@api_view(['POST'])
+@permission_classes((IsAuthenticated,))
+def user_password(request, pk):
+    required_params = ['old_password', 'new_password']
+    params = JSONParser().parse(request)
+    param_complete =  all(item in params for item in required_params)
+    if not param_complete:
+        return HttpResponse("Incomplete data", status=400)
+
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return HttpResponse("User not found", status=404)
+
+    if not user.password == params["old_password"]:
+        return HttpResponse("Incorrect password", status=403)
+
+    data = {}
+    data["email"] = user.email
+    data["password"] = params["new_password"]
+
+    serializer = UserSerializer(user, data=data)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(serializer.data)
+    return JsonResponse(serializer.errors, status=400)
+
+@api_view(['POST'])
+@permission_classes((IsAuthenticated,))
+def test(request):
+    return HttpResponse("done!")
