@@ -10,7 +10,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 import requests
 from rest_framework.permissions import IsAuthenticated
-from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope
+from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 
 # Create your views here.
 
@@ -79,6 +79,7 @@ def access_token(request, pk):
         return HttpResponse("User not found", status=404)
 
     if request.method == 'POST':
+        # TODO: validate email and password
         required_params = ['email', 'password']
         params = JSONParser().parse(request)
         param_complete =  all(item in params for item in required_params)
@@ -93,10 +94,11 @@ def access_token(request, pk):
         return JsonResponse(r.json(), safe= False)
 
 @api_view(['POST'])
+@authentication_classes((OAuth2Authentication,))
 @permission_classes((IsAuthenticated,))
 def user_password(request, pk):
     required_params = ['old_password', 'new_password']
-    params = JSONParser().parse(request)
+    params = request.data
     param_complete =  all(item in params for item in required_params)
     if not param_complete:
         return HttpResponse("Incomplete data", status=400)
@@ -118,8 +120,3 @@ def user_password(request, pk):
         serializer.save()
         return JsonResponse(serializer.data)
     return JsonResponse(serializer.errors, status=400)
-
-@api_view(['POST'])
-@permission_classes((IsAuthenticated,))
-def test(request):
-    return HttpResponse("done!")
