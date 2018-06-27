@@ -8,5 +8,4 @@ urlpatterns = [
     url(r'^user/$', views.user_registration),
     url(r'^user/(?P<pk>[0-9]+)/$', views.user_detail),
     url(r'^user/(?P<pk>[0-9]+)/(?P<t>[\w]+)$', views.user_detail),
-    url(r'^test/$', views.test),
 ]
